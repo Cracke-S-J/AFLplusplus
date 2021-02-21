@@ -493,14 +493,14 @@ bool ModuleSanitizerCoverage::instrumentModule(
   if (!map_addr) {
 
     AFLMapPtr =
-        new GlobalVariable(M, PointerType::get(Int8Tyi, 0), false,
+        new GlobalVariable(M, PointerType::get(Int16Ty, 0), false,
                            GlobalValue::ExternalLinkage, 0, "__afl_area_ptr");
 
   } else {
 
     ConstantInt *MapAddr = ConstantInt::get(Int64Tyi, map_addr);
     MapPtrFixed =
-        ConstantExpr::getIntToPtr(MapAddr, PointerType::getUnqual(Int8Tyi));
+        ConstantExpr::getIntToPtr(MapAddr, PointerType::getUnqual(Int16Ty));
 
   }
 
@@ -1000,7 +1000,7 @@ bool ModuleSanitizerCoverage::instrumentModule(
 
     if (getenv("AFL_LLVM_LTO_DONTWRITEID") == NULL) {
 
-      uint32_t write_loc = afl_global_id;
+      uint32_t write_loc = afl_global_id << 1;
 
       if (afl_global_id % 8) write_loc = (((afl_global_id + 8) >> 3) << 3);
 
