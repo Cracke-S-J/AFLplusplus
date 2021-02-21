@@ -242,10 +242,13 @@ class ModuleSanitizerCoverage {
   DenseMap<Value *, std::string *> valueMap;
   std::vector<std::string>         dictionary;
   IntegerType *                    Int8Tyi = NULL;
+  IntegerType *                    Int16Tyi = NULL;
   IntegerType *                    Int32Tyi = NULL;
   IntegerType *                    Int64Tyi = NULL;
   ConstantInt *                    Zero = NULL;
+  ConstantInt *                    Zero16 = NULL;
   ConstantInt *                    One = NULL;
+  ConstantInt *                    One16 = NULL;
   LLVMContext *                    Ct = NULL;
   Module *                         Mo = NULL;
   GlobalVariable *                 AFLMapPtr = NULL;
@@ -421,6 +424,7 @@ bool ModuleSanitizerCoverage::instrumentModule(
   LLVMContext &Ctx = M.getContext();
   Ct = &Ctx;
   Int8Tyi = IntegerType::getInt8Ty(Ctx);
+  Int16Tyi = IntegerType::getInt16Ty(Ctx);
   Int32Tyi = IntegerType::getInt32Ty(Ctx);
   Int64Tyi = IntegerType::getInt64Ty(Ctx);
 
@@ -493,19 +497,21 @@ bool ModuleSanitizerCoverage::instrumentModule(
   if (!map_addr) {
 
     AFLMapPtr =
-        new GlobalVariable(M, PointerType::get(Int16Ty, 0), false,
+        new GlobalVariable(M, PointerType::get(Int16Tyi, 0), false,
                            GlobalValue::ExternalLinkage, 0, "__afl_area_ptr");
 
   } else {
 
     ConstantInt *MapAddr = ConstantInt::get(Int64Tyi, map_addr);
     MapPtrFixed =
-        ConstantExpr::getIntToPtr(MapAddr, PointerType::getUnqual(Int16Ty));
+        ConstantExpr::getIntToPtr(MapAddr, PointerType::getUnqual(Int16Tyi));
 
   }
 
   Zero = ConstantInt::get(Int8Tyi, 0);
+  Zero16 = ConstantInt::get(Int16Tyi, 0);
   One = ConstantInt::get(Int8Tyi, 1);
+  One16 = ConstantInt::get(Int16Tyi, 1);
 
   scanForDangerousFunctions(&M);
   Mo = &M;
@@ -1485,12 +1491,12 @@ void ModuleSanitizerCoverage::InjectCoverageAtBlock(Function &F, BasicBlock &BB,
     LoadInst *Counter = IRB.CreateLoad(MapPtrIdx);
     Counter->setMetadata(Mo->getMDKindID("nosanitize"), MDNode::get(*Ct, None));
 
-    Value *Incr = IRB.CreateAdd(Counter, One);
+    Value *Incr = IRB.CreateAdd(Counter, One16);
 
     if (skip_nozero == NULL) {
 
-      auto cf = IRB.CreateICmpEQ(Incr, Zero);
-      auto carry = IRB.CreateZExt(cf, Int8Tyi);
+      auto cf = IRB.CreateICmpEQ(Incr, Zero16);
+      auto carry = IRB.CreateZExt(cf, Int16Tyi);
       Incr = IRB.CreateAdd(Incr, carry);
 
     }
